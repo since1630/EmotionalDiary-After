@@ -1,0 +1,484 @@
+{% extends 'layout.html' %}
+
+{% block content %}
+    <!DOCTYPE html>
+    <html lang="en">
+
+    <head>
+        <meta charset="UTF-8" />
+        <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet"
+              integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous" />
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js"
+                integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM"
+                crossorigin="anonymous"></script>
+
+        <title>일기 쓰기</title>
+
+        <meta property="og:title" content="구왁" />
+        <meta property="og:description" content="구와악" />
+        <meta property="og:image"
+              content="https://avatars.githubusercontent.com/u/32028454?s=400&u=7993b49546f6ebb45968dbafa6c97c5789ec2254&v=4" />
+
+        <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@200;300;400;500;600;700;900&display=swap"
+              rel="stylesheet" />
+        <style>
+            * {
+                font-family: "Noto Serif KR", serif;
+            }
+
+            /* accordion 관련은 모두 붙여넣어주세요.
+            수정이 필요한 부분에는 주석으로 시작표시를 해드렸습니다.
+            표시내용: "★★여기서부터 수정이 필요함★★"
+            */
+            .accordion-item {
+                margin-bottom: 10px;
+            }
+
+            .accordion-header {
+                cursor: pointer;
+            }
+
+            .accordion-header::after {
+                content: "▼";
+                float: right;
+                margin-left: 5px;
+            }
+
+            .accordion-header.active::after {
+                content: "▲";
+            }
+
+            .accordion-body {
+                display: none;
+                overflow: hidden;
+                transition: max-height 0.3s ease;
+                max-height: 50%;
+            }
+
+            .accordion-body.show {
+                display: block;
+                max-height: 100%;
+                overflow: visible;
+                position: relative;
+                height: calc(100% - 20%);
+            }
+
+            .accordion-body.unique {
+                display: flex;
+                flex-wrap: wrap;
+            }
+
+            .accordion-body.unique .btn-group {
+                flex-basis: 33.33%;
+                padding: 5px;
+            }
+
+            .btn-outline-primary.active {
+                background-color: blue;
+            }
+
+            .commentBt>button {
+                margin: 0 10 0 0;
+                border-radius: 10px;
+                background-color: blue;
+            }
+
+
+            /*///////////////////////////////////////////////////////*/
+            /* ★★여기서부터 수정이 필요함★★ */
+            /* 키워드 박스를 오른쪽 아래로 위치시키려고 확인중이었음 */
+
+
+            .div-spacing {
+                margin-bottom: 20px;
+                /* 하단 간격을 20px로 설정 */
+            }
+
+            .div-spacing2 {
+                margin-top: 20px;
+            }
+        </style>
+        <script>
+
+          // 글자수 제한(한줄일기)
+          function countCharacters() {
+            const textarea = document.getElementById("floatingTextarea2");
+            const characterCount = document.getElementById("characterCount");
+
+            let limit = 40;
+            let inputText = textarea.value;
+            let inputTextCount = inputText.length;
+
+            if (inputTextCount > limit) {
+              inputText = textarea.value.substring(0, limit);
+              inputTextCount = inputText.length;
+              alert("글자 수는 40자까지만 입력할 수 있습니다.");
+            }
+
+            characterCount.textContent = "글자 수: " + inputTextCount;
+          }
+
+          $(document).ready(function () {
+            showUsername()
+          });
+
+          // 사용자 닉네임
+          function showUsername() {
+            fetch('/writediary')
+              .then((res) => res.json()).then((data) => {
+              let rows = data['result']
+              rows.forEach((a) => {
+                let name = "{{ session['id'] }}";
+                let nickname = document.getElementById('nickname')
+
+                nickname.textContent = name
+
+                console.log(name, nickname)
+              })
+            })
+          }
+
+          // 작성건 캔슬
+          function cancelDiary() {
+            const textarea = document.getElementById('floatingTextarea2');
+            textarea.value = '';
+
+            alert("일기 작성이 취소되었습니다.");
+          }
+
+          // 작성건 저장
+          function saveDiary() {
+            let id = "{{ session['id'] }}";
+
+            let name = $('#name').val();
+            let comment = $('#floatingTextarea2').val();
+            let private = $('#private').is(':checked');
+            let title = $('#title').val();
+            let select_keyword = $('.btn-outline-primary.active').map(function () {
+              return $(this).text();
+            }).get();
+
+            let emoji;
+            if ($('#inlineRadio1').is(':checked')) emoji = 1;
+            else if ($('#inlineRadio2').is(':checked')) emoji = 2;
+            else if ($('#inlineRadio3').is(':checked')) emoji = 3;
+            else if ($('#inlineRadio4').is(':checked')) emoji = 4;
+            else emoji = 5;
+
+            let privacy = private ? "비공개" : "공개";
+
+            let formData = new FormData();
+            formData.append("id_give", id);
+            formData.append("comment_give", comment);
+            formData.append("private_give", private);
+            formData.append("emoji_give", emoji);
+            formData.append("title_give", title);
+            formData.append("select_keywd", select_keyword);
+
+            let date = new Date();
+            let day = date.getDate();
+            let month = date.getMonth() + 1;
+
+            formData.append("day_give", day);
+            formData.append("month_give", month);
+
+            // let nickname = $('#nickname');
+
+            fetch('/writediary', { method: "POST", body: formData, }).then((res) => res.json()).then((data) => {
+              alert(data["msg"]);
+              window.location.reload();
+            });
+
+
+          }
+
+
+          // 화면 로딩시 키워드 목록이 로딩된 상태여야 하기 때문에
+          // ★★수정필요★★ 주석이 없는 부분까지는 붙여넣어 주세요.
+
+          // 화면 로딩시 키워드 목록이 로딩된 상태여야 하기 때문에
+          // ★★수정필요★★ 주석이 없는 부분까지는 붙여넣어 주세요.
+          $(document).ready(function () {
+            show_keyword();
+          });
+
+          function show_keyword() {
+            fetch('/get_keywords')
+              .then((res) => res.json())
+              .then((data) => {
+                let rows = data['result'];
+
+                // 고유한 타입 목록
+                let types = Array.from(new Set(rows.map(a => a.type)));
+
+                types.forEach((type) => {
+                  let keywords = rows.filter(a => a.type === type).map(a => a.keyword);
+
+                  let accordionItem = $('<div class="accordion-item"></div>');
+                  let accordionHeader = $('<div class="accordion-header"></div>').text(type);
+                  let accordionBody = $('<div class="accordion-body"></div>');
+
+                  // type별로 나눠진 아코디언에 append되는 button을 한줄에 5개만 등록되도록
+                  // 버튼을 담을 그룹을 생성한다.
+                  let buttonGroup = $('<div class="btn-group-vertical" role="group"></div>');
+
+
+                  ///////▼▼▼▼처음에 보내드린 코드기준으로 여기서부터▼▼▼▼////////
+                  if (type === "unique") { // unique 타입인 경우
+                    for (let i = 0; i < keywords.length; i += 3) { // 한 행에 3개의 키워드만 보이도록 수정
+                      let keywordRow = $('<div class="btn-group"></div>');
+
+                      for (let j = 0; j < 3 && i + j < keywords.length; j++) {
+                        let keywordButton = $('<button class="btn btn-outline-primary"></button>').text(keywords[i + j]);
+                        keywordButton.on('click', function () {
+                          $(this).toggleClass('active');
+                        });
+                        keywordRow.append(keywordButton);
+                      }
+                      buttonGroup.append(keywordRow);
+                    }
+                  } else { // 그 외의 타입인 경우 (positive, negative)
+                    for (let i = 0; i < keywords.length; i += 5) { // 한 행에 5개의 키워드가 보이도록 유지
+                      let keywordRow = $('<div class="btn-group"></div>');
+
+                      for (let j = 0; j < 5 && i + j < keywords.length; j++) {
+                        let keywordButton = $('<button class="btn btn-outline-primary"></button>').text(keywords[i + j]);
+                        keywordButton.on('click', function () {
+                          $(this).toggleClass('active');
+                        });
+                        keywordRow.append(keywordButton);
+                      }
+                      buttonGroup.append(keywordRow);
+                    }
+                  }
+                  /////////▲▲▲▲여기까지 달라짐▲▲▲▲//////////
+
+                  accordionBody.append(buttonGroup);
+                  accordionItem.append(accordionHeader);
+                  accordionItem.append(accordionBody);
+
+                  $('#order-box').append(accordionItem);
+                });
+
+
+                // 아코디언 초기화 및 클릭 이벤트 추가(아코디언 열고 닫기)
+                $('.accordion-header').on('click', function () {
+                  // 아코디언 열고 닫기 로직 수정
+                  $(this).toggleClass('active');
+                  var accordionBody = $(this).next('.accordion-body');
+                  accordionBody.slideToggle();
+
+                  // 열린 아코디언 외의 다른 아코디언 닫기
+                  $('.accordion-body').not(accordionBody).slideUp();
+                  $('.accordion-header').not($(this)).removeClass('active');
+                });
+
+
+                ///////////////////////////////////////////////////////////////
+                // ★★여기서부터 수정이 필요함★★
+                // ★선택키워드를 DB에 저장하는 코드★
+                // 이 코드는 선택한 키워드를 DB로 전송하는 기능을 담당합니다.
+                // 키워드는 선택 후 취소도 가능하기 때문에 "서너택된 상태"를 저장합니다. (클릭 이벤트 추가)
+                // select_keyword = 화면에서 선택된 키워드의 값만 담습니다.
+
+              });
+
+            // console.log(select_keyword);
+
+
+            // 데이터 전송을 담당함
+            // select_keyword 에 들어있는 선택값을 fetch로 보냅니다.
+            // app.py의 @app.route("/write_done", methods=["POST"])
+            let formData_Keywrods = new FormData()
+            formData_Keywrods.append('select_keywd', select_keyword)
+            fetch('/write_done', { method: "POST", body: formData_Keywrods, })
+              .then((res) => res.json())
+              .then((data) => {
+                alert(data["msg"])
+                window.location.reload();
+              });
+          };
+
+
+        </script>
+    </head>
+
+
+    <body>
+
+    <!-- 홈 / 마이페이지 버튼 -->
+    <div class="d-flex">
+        <div class="d-grid gap-2 d-md-block flex-fill" style="margin-left:55px">
+            <button type="button" class="btn btn-primary" onclick="location.href='/'">Home</button>
+        </div>
+
+        <div class="d-grid gap-2 justify-content-md-end flex-fill" style="margin-right:160px">
+            <button type="button" class="btn btn-primary" onclick="location.href='/mypage'">My page</button>
+        </div>
+    </div>
+
+    <!-- 헤더 -->
+    <div style="display: flex; justify-content: center; align-items: center; height: 100px; margin-bottom: 50px;">
+        <h1 class="display-1">Today's journey</h1>
+    </div>
+    <div class="div-spacing2">
+        <!-- spacing -->
+    </div>
+    <div class="container1" style="display: flex; justify-content: center; align-items: center">
+
+        <!-- 텍스트 공간 -->
+        <div class="form-container">
+            <div style="display: flex; justify-content: center; align-items: center">
+                <span id="nickname"></span> 님의 일기★
+            </div>
+            <div class="div-spacing">
+                <!-- spacing -->
+            </div>
+            <div class="form-floating mb-3">
+                <input type="text" class="form-control" id="title" placeholder="url" />
+                <label for="floatingInput">일기 제목</label>
+            </div>
+            <div class="div-spacing">
+                <!-- spacing -->
+            </div>
+            <div class="form-floating">
+                <textarea class="form-control" id="floatingTextarea2" style="height: 100px; width: 600px"
+                          oninput="countCharacters()"></textarea>
+                <p id="characterCount">글자 수: 0</p>
+                <div class="wrap" style="margin-top:50px;display: flex; justify-content: center; align-items: center">
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="radio" name="inlineRadioOptions" id="inlineRadio1"
+                               value="option1">
+                        <label class="form-check-label" for="inlineRadio1"><svg xmlns="http://www.w3.org/2000/svg"
+                                                                                width="16" height="16" fill="currentColor" class="bi bi-emoji-laughing"
+                                                                                viewBox="0 0 16 16">
+                            <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z" />
+                            <path
+                                    d="M12.331 9.5a1 1 0 0 1 0 1A4.998 4.998 0 0 1 8 13a4.998 4.998 0 0 1-4.33-2.5A1 1 0 0 1 4.535 9h6.93a1 1 0 0 1 .866.5zM7 6.5c0 .828-.448 0-1 0s-1 .828-1 0S5.448 5 6 5s1 .672 1 1.5zm4 0c0 .828-.448 0-1 0s-1 .828-1 0S9.448 5 10 5s1 .672 1 1.5z" />
+                        </svg></label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="radio" name="inlineRadioOptions" id="inlineRadio2"
+                               value="option2">
+                        <label class="form-check-label" for="inlineRadio2"><svg xmlns="http://www.w3.org/2000/svg"
+                                                                                width="16" height="16" fill="currentColor" class="bi bi-emoji-smile"
+                                                                                viewBox="0 0 16 16">
+                            <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z" />
+                            <path
+                                    d="M4.285 9.567a.5.5 0 0 1 .683.183A3.498 3.498 0 0 0 8 11.5a3.498 3.498 0 0 0 3.032-1.75.5.5 0 1 1 .866.5A4.498 4.498 0 0 1 8 12.5a4.498 4.498 0 0 1-3.898-2.25.5.5 0 0 1 .183-.683zM7 6.5C7 7.328 6.552 8 6 8s-1-.672-1-1.5S5.448 5 6 5s1 .672 1 1.5zm4 0c0 .828-.448 1.5-1 1.5s-1-.672-1-1.5S9.448 5 10 5s1 .672 1 1.5z" />
+                        </svg></label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="radio" name="inlineRadioOptions" id="inlineRadio3"
+                               value="option3">
+                        <label class="form-check-label" for="inlineRadio3"><svg xmlns="http://www.w3.org/2000/svg"
+                                                                                width="16" height="16" fill="currentColor" class="bi bi-emoji-neutral"
+                                                                                viewBox="0 0 16 16">
+                            <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z" />
+                            <path
+                                    d="M4 10.5a.5.5 0 0 0 .5.5h7a.5.5 0 0 0 0-1h-7a.5.5 0 0 0-.5.5zm3-4C7 5.672 6.552 5 6 5s-1 .672-1 1.5S5.448 8 6 8s1-.672 1-1.5zm4 0c0-.828-.448-1.5-1-1.5s-1 .672-1 1.5S9.448 8 10 8s1-.672 1-1.5z" />
+                        </svg></label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="radio" name="inlineRadioOptions" id="inlineRadio4"
+                               value="option4">
+                        <label class="form-check-label" for="inlineRadio4"><svg xmlns="http://www.w3.org/2000/svg"
+                                                                                width="16" height="16" fill="currentColor" class="bi bi-emoji-frown"
+                                                                                viewBox="0 0 16 16">
+                            <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z" />
+                            <path
+                                    d="M4.285 12.433a.5.5 0 0 0 .683-.183A3.498 3.498 0 0 1 8 10.5c1.295 0 2.426.703 3.032 1.75a.5.5 0 0 0 .866-.5A4.498 4.498 0 0 0 8 9.5a4.5 4.5 0 0 0-3.898 2.25.5.5 0 0 0 .183.683zM7 6.5C7 7.328 6.552 8 6 8s-1-.672-1-1.5S5.448 5 6 5s1 .672 1 1.5zm4 0c0 .828-.448 1.5-1 1.5s-1-.672-1-1.5S9.448 5 10 5s1 .672 1 1.5z" />
+                        </svg></label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="radio" name="inlineRadioOptions" id="inlineRadio5"
+                               value="option5">
+                        <label class="form-check-label" for="inlineRadio5"><svg xmlns="http://www.w3.org/2000/svg"
+                                                                                width="16" height="16" fill="currentColor" class="bi bi-emoji-angry"
+                                                                                viewBox="0 0 16 16">
+                            <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z" />
+                            <path
+                                    d="M4.285 12.433a.5.5 0 0 0 .683-.183A3.498 3.498 0 0 1 8 10.5c1.295 0 2.426.703 3.032 1.75a.5.5 0 0 0 .866-.5A4.498 4.498 0 0 0 8 9.5a4.5 4.5 0 0 0-3.898 2.25.5.5 0 0 0 .183.683zm6.991-8.38a.5.5 0 1 1 .448.894l-1.009.504c.176.27.285.64.285 1.049 0 .828-.448 1.5-1 1.5s-1-.672-1-1.5c0-.247.04-.48.11-.686a.502.502 0 0 1 .166-.761l2-1zm-6.552 0a.5.5 0 0 0-.448.894l1.009.504A1.94 1.94 0 0 0 5 6.5C5 7.328 5.448 8 6 8s1-.672 1-1.5c0-.247-.04-.48-.11-.686a.502.502 0 0 0-.166-.761l-2-1z" />
+                        </svg></label>
+                    </div>
+                </div>
+                <label for="floatingTextarea2">일기 쓰기</label>
+            </div>
+            <div class="form-check" style="display: flex; justify-content: center; align-items: center">
+                <input class="form-check-input" type="checkbox" value="" id="private">
+                <label class="form-check-label" for="private">
+                    비공개
+                </label>
+            </div>
+
+            <div class="div-spacing">
+                <!-- spacing -->
+            </div>
+
+            <!-- 키워드 아코디언 박스 -->
+            <div class="keyword_boby">
+                <h1 class="box_h1"
+                    style="margin-top:50px; margin-bottom: 50px; font-size:40px; color:#A9A9A9; display: flex; justify-content: center; align-items: center">
+                    keywords</h1>
+                <div id="order-box" class="box_position">
+                </div>
+            </div>
+
+            <div class="div-spacing" style="margin-bottom: 50px;">
+                <!-- spacing -->
+            </div>
+
+            <div style="margin-bottom: 100px; display: flex; justify-content: center; align-items: center">
+                <button type="button" class="btn btn-primary" onclick="saveDiary()">저장하기</button>
+                <button type="button" class="btn btn-primary" onclick="cancelDiary()">작성취소</button>
+            </div>
+
+
+        </div>
+    </div>
+
+    <!-- <div class="container2">
+        이모티콘 컨테이너
+        <div class="image-container">
+            <div class="emoji-button">
+                <div class="image-container1 custom-style" onclick="selectMood('goofy')">
+                    <a href="#" onclick="selectMood('goofy')">
+                        <img src="{{ url_for('static', filename='images/noun-goofy-103921.png') }}" alt="goofy Emoji"
+                            width="100px" height="100px">
+                    </a>
+                </div>
+                <div class="image-container1 custom-style" onclick="selectMood('happy')">
+                    <a href="#" onclick="selectMood('happy')">
+                        <img src="{{ url_for('static', filename='images/noun-happy-103910.png') }}" alt="happy Emoji"
+                            width="100px" height="100px">
+                    </a>
+                </div>
+                <div class="image-container1 custom-style" onclick="selectMood('nerd')">
+                    <a href="#" onclick="selectMood('nerd')">
+                        <img src="{{ url_for('static', filename='images/noun-nerd-103920.png') }}" alt="nerd Emoji"
+                            width="100px" height="100px">
+                    </a>
+                </div>
+                <div class="image-container1 custom-style" onclick="selectMood('sad')">
+                    <a href="#" onclick="selectMood('sad')">
+                        <img src="{{ url_for('static', filename='images/noun-sad-103915.png') }}" alt="sad Emoji"
+                            width="100px" height="100px">
+                    </a>
+                </div>
+                <div class="image-container1 custom-style" onclick="selectMood('shocked')">
+                    <a href="#" onclick="selectMood('shocked')">
+                        <img src="{{ url_for('static', filename='images/noun-shocked-103927.png') }}"
+                            alt="shocked Emoji" width="100px" height="100px">
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div> -->
+    </body>
+
+    </html>
+{% endblock %}

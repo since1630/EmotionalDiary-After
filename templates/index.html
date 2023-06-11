@@ -1,0 +1,358 @@
+{% extends 'layout.html' %} {% block content %}
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+      integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC"
+      crossorigin="anonymous"
+    />
+    <!-- 달력 CSS 임포트  -->
+    <link rel="stylesheet" href="../static/css/calendar.css" />
+
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <script
+      src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js"
+      integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM"
+      crossorigin="anonymous"
+    ></script>
+
+    <title>12조 미니 프로젝트 - 감정일기</title>
+
+    <meta property="og:title" content="감정일기" />
+    <meta property="og:description" content="감정일기" />
+    <meta
+      property="og:image"
+      content="https://avatars.githubusercontent.com/u/32028454?s=400&u=7993b49546f6ebb45968dbafa6c97c5789ec2254&v=4"
+    />
+
+    <link
+      href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@200;300;400;500;600;700;900&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      * {
+        font-family: "Noto Serif KR", serif;
+      }
+
+      .mypost {
+        width: 95%;
+        max-width: 500px;
+        margin: 20px auto 20px auto;
+
+        box-shadow: 0px 0px 3px 0px black;
+        padding: 20px;
+      }
+
+      .mypost > button {
+        margin-top: 15px;
+      }
+
+      .mycards {
+        width: 95%;
+        max-width: 500px;
+        margin: auto;
+      }
+
+      .mycards > .card {
+        margin-top: 10px;
+        margin-bottom: 10px;
+      }
+      #chart_wrap {
+        margin: 0 auto;
+        display: flex;
+        justify-content: center;
+      }
+      #wrap_calender {
+        margin-top: 100px;
+      }
+      #chart_wrap {
+        margin-top: 100px;
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        justify-content: center;
+      }
+      #wrap_notice {
+        width: 300px;
+        height: 200px;
+      }
+      .notice {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        border: solid 2px black;
+      }
+      #myChart1 {
+        margin-right: 50px;
+      }
+      #myChart2 {
+        margin-left: 50px;
+      }
+
+      #wrap_last_month_emotion {
+        text-align: center;
+        justify-content: center;
+        display: flex;
+        align-items: center;
+      }
+      #last_month_emotion {
+        text-align: center;
+        display: block;
+        margin: auto;
+      }
+      #current_month_emotion {
+        text-align: center;
+        display: block;
+        margin: auto;
+      }
+
+      .container2 {
+        height: 500px;
+        width: 500px;
+        border: 1px solid black;
+        overflow-y: scroll;
+      }
+
+      html::-webkit-scrollbar {
+        width: 10px;
+      }
+      html::-webkit-scrollbar-track {
+        background: black;
+      }
+      html::-webkit-scrollbar-thumb {
+        background: pink;
+        background-clip: padding-box;
+        border: 2px solid transparent;
+      }
+
+      .container2::-webkit-scrollbar {
+        width: 15px;
+      }
+      .container2::-webkit-scrollbar-track {
+        background: gray;
+      }
+      .container2::-webkit-scrollbar-thumb {
+        background: paleturquoise;
+        background-clip: padding-box;
+        border: 3px solid transparent;
+        border-radius: 8px;
+      }
+      .calendercontainer {
+        text-align: center;
+        display: inline-flex;
+        width: auto;
+      }
+    </style>
+
+    <!-- 차트 -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- 달력 import-->
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
+
+    <!-- 차트 JS 파일 임포트 -->
+    <script type="module" src="../static/js/chartEmotion.js" defer></script>
+    <script src="https://unpkg.com/axios/dist/axios.min.js" defer></script>
+
+    <!-- 달력 JS 파일 임포트 -->
+    <script src="../static/js/callendar.js" defer></script>
+
+    <script>
+      $(document).ready(function () {
+        show_mydiary();
+      });
+
+      function show_mydiary() {
+        fetch("/show_diary")
+          .then((res) => res.json())
+          .then((data) => {
+            $("#comment-list").empty();
+            let rows = data["result"];
+            rows.forEach((a) => {
+              let id = a["id"];
+              let month = a["month"];
+              let day = a["day"];
+
+              let words = a["select_keywd"];
+
+              const delimiter = ",";
+              const wordArray = words
+                .split(delimiter)
+                .map((word) => `#${word.trim()}`);
+              const select_keywd = wordArray.join(" ");
+
+              let num = a["num"];
+              let name = a["name"];
+              let content = a["content"];
+              let private = a["private"] === "true" ? "비공개" : "공개";
+              if (a["emoji"] === "1")
+                emoji = `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="currentColor" class="bi bi-emoji-laughing" viewBox="0 0 16 16">
+            <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
+            <path d="M12.331 9.5a1 1 0 0 1 0 1A4.998 4.998 0 0 1 8 13a4.998 4.998 0 0 1-4.33-2.5A1 1 0 0 1 4.535 9h6.93a1 1 0 0 1 .866.5zM7 6.5c0 .828-.448 0-1 0s-1 .828-1 0S5.448 5 6 5s1 .672 1 1.5zm4 0c0 .828-.448 0-1 0s-1 .828-1 0S9.448 5 10 5s1 .672 1 1.5z"/>
+        </svg>`;
+              else if (a["emoji"] === "2")
+                emoji = `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="currentColor" class="bi bi-emoji-smile" viewBox="0 0 16 16">
+            <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
+            <path d="M4.285 9.567a.5.5 0 0 1 .683.183A3.498 3.498 0 0 0 8 11.5a3.498 3.498 0 0 0 3.032-1.75.5.5 0 1 1 .866.5A4.498 4.498 0 0 1 8 12.5a4.498 4.498 0 0 1-3.898-2.25.5.5 0 0 1 .183-.683zM7 6.5C7 7.328 6.552 8 6 8s-1-.672-1-1.5S5.448 5 6 5s1 .672 1 1.5zm4 0c0 .828-.448 1.5-1 1.5s-1-.672-1-1.5S9.448 5 10 5s1 .672 1 1.5z"/>
+        </svg>`;
+              else if (a["emoji"] === "3")
+                emoji = `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="currentColor" class="bi bi-emoji-neutral" viewBox="0 0 16 16">
+            <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
+            <path d="M4 10.5a.5.5 0 0 0 .5.5h7a.5.5 0 0 0 0-1h-7a.5.5 0 0 0-.5.5zm3-4C7 5.672 6.552 5 6 5s-1 .672-1 1.5S5.448 8 6 8s1-.672 1-1.5zm4 0c0-.828-.448-1.5-1-1.5s-1 .672-1 1.5S9.448 8 10 8s1-.672 1-1.5z"/>
+        </svg>`;
+              else if (a["emoji"] === "4")
+                emoji = `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="currentColor" class="bi bi-emoji-frown" viewBox="0 0 16 16">
+            <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
+            <path d="M4.285 12.433a.5.5 0 0 0 .683-.183A3.498 3.498 0 0 1 8 10.5c1.295 0 2.426.703 3.032 1.75a.5.5 0 0 0 .866-.5A4.498 4.498 0 0 0 8 9.5a4.5 4.5 0 0 0-3.898 2.25.5.5 0 0 0 .183.683zM7 6.5C7 7.328 6.552 8 6 8s-1-.672-1-1.5S5.448 5 6 5s1 .672 1 1.5zm4 0c0 .828-.448 1.5-1 1.5s-1-.672-1-1.5S9.448 5 10 5s1 .672 1 1.5z"/>
+        </svg>`;
+              else
+                emoji = `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="currentColor" class="bi bi-emoji-angry" viewBox="0 0 16 16">
+            <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
+            <path d="M4.285 12.433a.5.5 0 0 0 .683-.183A3.498 3.498 0 0 1 8 10.5c1.295 0 2.426.703 3.032 1.75a.5.5 0 0 0 .866-.5A4.498 4.498 0 0 0 8 9.5a4.5 4.5 0 0 0-3.898 2.25.5.5 0 0 0 .183.683zm6.991-8.38a.5.5 0 1 1 .448.894l-1.009.504c.176.27.285.64.285 1.049 0 .828-.448 1.5-1 1.5s-1-.672-1-1.5c0-.247.04-.48.11-.686a.502.502 0 0 1 .166-.761l2-1zm-6.552 0a.5.5 0 0 0-.448.894l1.009.504A1.94 1.94 0 0 0 5 6.5C5 7.328 5.448 8 6 8s1-.672 1-1.5c0-.247-.04-.48-.11-.686a.502.502 0 0 0-.166-.761l-2-1z"/>
+        </svg>`;
+
+              let temp_html = `<div class="card">
+                                <div>${emoji}  ${id} #${private}<div>${month}월 ${day}일</div></div>
+                                <div class="card-body">
+                                    <blockquote class="blockquote mb-0">
+                                        <h3>${name}</h3>
+                                        <p>${content}</p>
+                                    </blockquote>
+                                    <blockquote class="blockquote mb-0">
+                                        <p>${select_keywd}</p>
+                                    </blockquote>
+                                </div>
+                            </div>
+                            `;
+              $("#diary-list").append(temp_html);
+            });
+          });
+      }
+    </script>
+  </head>
+  <body>
+    <!-- HTML 코드 -->
+    <!-- 차트 & 달력 -->
+    <div id="chart_wrap">
+      <div class="left_chart_wrap">
+        <div class="wrap_last_month_emotion">
+          <span id="last_month_emotion"></span>
+        </div>
+        <canvas id="myChart1" width="500" height="300"></canvas>
+      </div>
+
+      <div id="wrap_notice">
+        <div class="notice">
+          <span id="notice_user" class="main_id"></span><br />
+          <span id="notice_last_month"></span><br />
+          <span id="notice_currnet_month"></span><br />
+          <span>가장 많이 느끼셨어요</span>
+        </div>
+      </div>
+      <div>
+        <div class="wrap_current_month_emotion">
+          <span id="current_month_emotion"></span>
+        </div>
+        <canvas id="myChart2" width="500" height="300"></canvas>
+      </div>
+    </div>
+
+    <!-- 달력 -->
+    <!-- Copyright (c) 2023 by Marco Biedermann (https://codepen.io/marcobiedermann/pen/AjxBbB) -->
+    <div class="container" style="width: auto">
+      <div class="calendercontainer">
+        <div class="calendar">
+          <header>
+            <h2>June</h2>
+
+            <a class="btn-prev fontawesome-angle-left"></a>
+            <a class="btn-next fontawesome-angle-right"></a>
+          </header>
+
+          <table>
+            <thead>
+              <tr>
+                <td>Mo</td>
+                <td>Tu</td>
+                <td>We</td>
+                <td>Th</td>
+                <td>Fr</td>
+                <td>Sa</td>
+                <td>Su</td>
+              </tr>
+            </thead>
+
+            <tbody>
+              <tr>
+                <td class="prev-month event">28</td>
+                <td class="prev-month">29</td>
+                <td class="prev-month event">30</td>
+                <td class="prev-month">31</td>
+                <td class="event">1</td>
+                <td class="event">2</td>
+                <td class="event">3</td>
+              </tr>
+              <tr>
+                <td>4</td>
+                <td>5</td>
+                <td>6</td>
+                <td>7</td>
+                <td class="event">8</td>
+                <td class="current-day event">9</td>
+                <td>10</td>
+              </tr>
+              <tr>
+                <td>11</td>
+                <td>12</td>
+                <td>13</td>
+                <td>14</td>
+                <td>15</td>
+                <td>16</td>
+                <td>17</td>
+              </tr>
+              <tr>
+                <td>18</td>
+                <td>19</td>
+                <td>20</td>
+                <td>21</td>
+                <td>22</td>
+                <td>23</td>
+                <td>24</td>
+              </tr>
+
+              <tr>
+                <td>25</td>
+                <td>26</td>
+                <td>27</td>
+                <td>28</td>
+                <td>29</td>
+                <td>30</td>
+                <td class="next-month">1</td>
+              </tr>
+              <tr>
+                <td class="next-month">2</td>
+                <td class="next-month">3</td>
+                <td class="next-month">4</td>
+                <td class="next-month">5</td>
+                <td class="next-month">6</td>
+                <td class="next-month">7</td>
+                <td class="next-month">8</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <!-- end calendar -->
+        <div class="container2" id="diary-list"></div>
+      </div>
+    </div>
+    <!-- end container -->
+  </body>
+</html>
+{% endblock %}
